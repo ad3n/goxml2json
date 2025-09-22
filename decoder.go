@@ -116,12 +116,6 @@ func (dec *Decoder) Decode(root *Node) error {
 			}
 			dec.levelSequence[len(dec.levelSequence)-1]++
 			dec.levelSequence = append(dec.levelSequence, 1)
-			if se.Name.Space != "" && dec.includeNSPrefix {
-				prefix, exists := dec.NameSpacePrefix[se.Name.Space]
-				if exists {
-					elem.label = prefix + ":" + se.Name.Local
-				}
-			}
 
 			// Extract attributes as children
 			for _, a := range se.Attr {
@@ -135,6 +129,14 @@ func (dec *Decoder) Decode(root *Node) error {
 				}
 				elem.n.AddChild(dec.attributePrefix+a.Name.Local, &Node{Data: a.Value})
 			}
+
+			if se.Name.Space != "" && dec.includeNSPrefix {
+				prefix, exists := dec.NameSpacePrefix[se.Name.Space]
+				if exists {
+					elem.label = prefix + ":" + se.Name.Local
+				}
+			}
+			
 			if dec.includeXMLSequence {
 				elem.n.AddChild(dec.sequencePrefix+"sequence", &Node{Data: strconv.Itoa(elem.sequence)})
 			}

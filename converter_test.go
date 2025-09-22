@@ -236,3 +236,46 @@ func TestXMLSequence(t *testing.T) {
 	assert.JSONEq(jsnExpr, res.String())
 
 }
+
+func TestConvertWithNSPrefix(t *testing.T) {
+	assert := assert.New(t)
+
+	s := `<?xml version="1.0" encoding="UTF-8"?>
+	<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+	    <soap-env:Header>
+	        <wsse:Security xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/12/secext">
+	            <wsse:BinarySecurityToken valueType="String" EncodingType="wsse:Base64Binary">
+	                Shared/IDL:IceSess\/SessMgr:1\.0.IDL/Common/!ICESMS\/ACPCRTC!ICESMSLB\/CRT.LB!-3379045898978075261!1563026!0
+	            </wsse:BinarySecurityToken>
+	        </wsse:Security>
+	    </soap-env:Header>
+	</soap-env:Envelope> `
+
+	// Build SimpleJSON
+	json, err := sj.NewJson([]byte(`{
+	  "soap-env:Envelope": {
+	    "soap-env:Header": {
+	      "wsse:Security": {
+	        "-wsse": "http://schemas.xmlsoap.org/ws/2002/12/secext",
+	        "wsse:BinarySecurityToken": {
+	          "#content": "Shared/IDL:IceSess\\/SessMgr:1\\.0.IDL/Common/!ICESMS\\/ACPCRTC!ICESMSLB\\/CRT.LB!-3379045898978075261!1563026!0",
+	          "-EncodingType": "wsse:Base64Binary",
+	          "-valueType": "String"
+	        }
+	      }
+	    },
+	    "-soap-env": "http://schemas.xmlsoap.org/soap/envelope/"
+	  }
+	}`))
+	assert.NoError(err)
+
+	expected, err := json.MarshalJSON()
+	assert.NoError(err)
+
+	// Then encode it in JSON
+	res, err := Convert(strings.NewReader(s), IncludeNSPrefix(true))
+	assert.NoError(err)
+
+	// Assertion
+	assert.JSONEq(string(expected), res.String(), "Drumroll")
+}
