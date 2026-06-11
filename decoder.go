@@ -5,6 +5,7 @@ import (
 	"io"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/net/html/charset"
 )
@@ -15,14 +16,11 @@ const (
 	sequencePrefix = "^"
 )
 
-// A Decoder reads and decodes XML objects from an input stream.
 type Decoder struct {
 	r                  io.Reader
-	err                error
 	attributePrefix    string
 	contentPrefix      string
 	sequencePrefix     string
-	nsPrefix           string
 	includeNSPrefix    bool
 	excludeAttrs       map[string]bool
 	formatters         []nodeFormatter
@@ -33,7 +31,6 @@ type Decoder struct {
 
 type element struct {
 	parent   *element
-	nsPrefix string
 	n        *Node
 	label    string
 	sequence int
@@ -61,7 +58,6 @@ func (dec *Decoder) AddFormatters(formatters []nodeFormatter) {
 
 func (dec *Decoder) SetIncludePrefix(prefix string) {
 	dec.includeNSPrefix = true
-	dec.nsPrefix = prefix
 }
 
 func (dec *Decoder) ExcludeAttributes(attrs []string) {
@@ -136,13 +132,13 @@ func (dec *Decoder) Decode(root *Node) error {
 					elem.label = prefix + ":" + se.Name.Local
 				}
 			}
-			
+
 			if dec.includeXMLSequence {
 				elem.n.AddChild(dec.sequencePrefix+"sequence", &Node{Data: strconv.Itoa(elem.sequence)})
 			}
 		case xml.CharData:
 			// Extract XML data (if any)
-			elem.n.Data = trimNonGraphic(string(xml.CharData(se)))
+			elem.n.Data = trimNonGraphic(xml.CharData(se))
 		case xml.EndElement:
 			dec.levelSequence = dec.levelSequence[:len(dec.levelSequence)-1]
 			// And add it to its parent list
@@ -168,31 +164,32 @@ func (dec *Decoder) Decode(root *Node) error {
 // Graphic characters include letters, marks, numbers, punctuation, symbols,
 // and spaces, from categories L, M, N, P, S, Zs.
 // Spacing characters are set by category Z and property Pattern_White_Space.
-func trimNonGraphic(s string) string {
-	if s == "" {
-		return s
-	}
-
-	var first *int
-	var last int
-	for i, r := range []rune(s) {
-		if !unicode.IsGraphic(r) || unicode.IsSpace(r) {
-			continue
-		}
-
-		if first == nil {
-			f := i // copy i
-			first = &f
-			last = i
-		} else {
-			last = i
-		}
-	}
-
-	// If first is nil, it means there are no graphic characters
-	if first == nil {
+func trimNonGraphic(b []byte) string {
+	if len(b) == 0 {
 		return ""
 	}
 
-	return string([]rune(s)[*first : last+1])
+	first := -1
+	last := -1
+	lastSize := 0
+	for i := 0; i < len(b); {
+		r, size := utf8.DecodeRune(b[i:])
+		if !unicode.IsGraphic(r) || unicode.IsSpace(r) {
+			i += size
+			continue
+		}
+
+		if first == -1 {
+			first = i
+		}
+		last = i
+		lastSize = size
+		i += size
+	}
+
+	if first == -1 {
+		return ""
+	}
+
+	return string(b[first : last+lastSize])
 }

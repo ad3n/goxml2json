@@ -20,9 +20,8 @@ type (
 		parseTypes []JSType
 	}
 
-	attrPrefixer     string
-	contentPrefixer  string
-	sequencePrefixer string
+	attrPrefixer    string
+	contentPrefixer string
 
 	includeNSPrefix bool
 
@@ -45,7 +44,6 @@ type (
 	arrayFormatter struct{}
 )
 
-// WithTypeConverter allows customized js type conversion behavior by passing in the desired JSTypes
 func WithTypeConverter(ts ...JSType) *customTypeConverter {
 	return &customTypeConverter{parseTypes: ts}
 }
@@ -62,7 +60,6 @@ func (tc *customTypeConverter) parseAsString(t JSType) bool {
 	return true
 }
 
-// Adds the type converter to the encoder
 func (tc *customTypeConverter) AddToEncoder(e *Encoder) *Encoder {
 	e.tc = tc
 	return e
@@ -77,15 +74,16 @@ func (tc *customTypeConverter) Convert(s string) string {
 	if strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`) {
 		s = s[1 : len(s)-1]
 	}
+
 	jsType := Str2JSType(s)
 	if tc.parseAsString(jsType) {
 		// add the quotes removed at the start of this func
 		s = `"` + s + `"`
 	}
+
 	return s
 }
 
-// WithAttrPrefix appends the given prefix to the json output of xml attribute fields to preserve namespaces
 func WithAttrPrefix(prefix string) *attrPrefixer {
 	ap := attrPrefixer(prefix)
 	return &ap
@@ -111,7 +109,6 @@ func (a *attrPrefixer) AddToDecoder(d *Decoder) *Decoder {
 	return d
 }
 
-// WithContentPrefix appends the given prefix to the json output of xml content fields to preserve namespaces
 func WithContentPrefix(prefix string) *contentPrefixer {
 	c := contentPrefixer(prefix)
 	return &c
@@ -127,7 +124,6 @@ func (c *contentPrefixer) AddToDecoder(d *Decoder) *Decoder {
 	return d
 }
 
-// ExcludeAttributes excludes some xml attributes, for example, xmlns:xsi, xsi:noNamespaceSchemaLocation
 func ExcludeAttributes(attrs []string) *excluder {
 	ex := excluder(attrs)
 	return &ex
@@ -142,7 +138,6 @@ func (ex *excluder) AddToDecoder(d *Decoder) *Decoder {
 	return d
 }
 
-// WithNodes formats specific nodes
 func WithNodes(n ...nodeFormatter) *nodesFormatter {
 	return &nodesFormatter{list: n}
 }
@@ -190,14 +185,5 @@ func (i *includeXMLSequence) AddToEncoder(e *Encoder) *Encoder {
 
 func (i *includeXMLSequence) AddToDecoder(d *Decoder) *Decoder {
 	d.includeXMLSequence = bool(*i)
-	return d
-}
-
-func (a *sequencePrefixer) AddToEncoder(e *Encoder) *Encoder {
-	return e
-}
-
-func (a *sequencePrefixer) AddToDecoder(d *Decoder) *Decoder {
-	d.sequencePrefix = string((*a))
 	return d
 }

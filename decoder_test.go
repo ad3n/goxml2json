@@ -92,7 +92,7 @@ func TestTrim(t *testing.T) {
 	}
 
 	for _, scenario := range table {
-		got := trimNonGraphic(scenario.in)
+		got := trimNonGraphic([]byte(scenario.in))
 		assert.Equal(t, scenario.expected, got)
 	}
 }

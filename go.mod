@@ -1,7 +1,6 @@
-module github.com/identitii/goxml2json
+module github.com/ad3n/goxml2json
 
-go 1.21
-toolchain go1.23.7
+go 1.26.0
 
 require (
 	github.com/bitly/go-simplejson v0.5.1

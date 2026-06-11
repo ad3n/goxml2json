@@ -12,11 +12,11 @@ Supports:
 
 ### Install
 
-    go get -u github.com/identitii/goxml2json
+    go get -u github.com/ad3n/goxml2json
 
 ### Importing
 
-    import github.com/identitii/goxml2json
+    import github.com/ad3n/goxml2json
 
 ### Usage
 
@@ -29,7 +29,7 @@ Supports:
   	"fmt"
   	"strings"
 
-  	xj "github.com/identitii/goxml2json"
+  	xj "github.com/ad3n/goxml2json"
   )
 
   func main() {

@@ -1,12 +1,10 @@
 package xml2json
 
 import (
-	"bytes"
 	"io"
 	"unicode/utf8"
 )
 
-// An Encoder writes JSON objects to an output stream.
 type Encoder struct {
 	w               io.Writer
 	err             error
@@ -15,20 +13,20 @@ type Encoder struct {
 	tc              encoderTypeConverter
 }
 
-// NewEncoder returns a new encoder that writes to w.
 func NewEncoder(w io.Writer, plugins ...plugin) *Encoder {
 	e := &Encoder{w: w, contentPrefix: contentPrefix, attributePrefix: attrPrefix}
 	for _, p := range plugins {
 		e = p.AddToEncoder(e)
 	}
+
 	return e
 }
 
-// Encode writes the JSON encoding of v to the stream
 func (enc *Encoder) Encode(root *Node) error {
 	if enc.err != nil {
 		return enc.err
 	}
+
 	if root == nil {
 		return nil
 	}
@@ -70,7 +68,6 @@ func (enc *Encoder) format(n *Node, lvl int) error {
 			enc.write("\": ")
 
 			if n.ChildrenAlwaysAsArray || len(children) > 1 {
-				// Array
 				enc.write("[")
 				for j, c := range children {
 					enc.format(c, lvl+1)
@@ -79,42 +76,46 @@ func (enc *Encoder) format(n *Node, lvl int) error {
 						enc.write(", ")
 					}
 				}
+
 				enc.write("]")
 			} else {
-				// Map
 				enc.format(children[0], lvl+1)
 			}
 
 			if i < tot-1 {
 				enc.write(", ")
 			}
+
 			i++
 		}
 
 		enc.write("}")
 	} else {
 		s := sanitiseString(n.Data)
-		if enc.tc == nil {
-			// do nothing
-		} else {
+		if enc.tc != nil {
 			s = enc.tc.Convert(s)
 		}
-		enc.write(s)
 
+		enc.write(s)
 	}
 
 	return nil
 }
 
 func (enc *Encoder) write(s string) {
-	enc.w.Write([]byte(s))
+	if enc.err != nil {
+		return
+	}
+
+	_, enc.err = io.WriteString(enc.w, s)
 }
 
 // https://golang.org/src/encoding/json/encode.go?s=5584:5627#L788
 var hex = "0123456789abcdef"
 
 func sanitiseString(s string) string {
-	var buf bytes.Buffer
+	buf := getBuffer()
+	defer putBuffer(buf)
 
 	buf.WriteByte('"')
 
@@ -125,9 +126,11 @@ func sanitiseString(s string) string {
 				i++
 				continue
 			}
+
 			if start < i {
 				buf.WriteString(s[start:i])
 			}
+
 			switch b {
 			case '\\', '"':
 				buf.WriteByte('\\')
@@ -152,8 +155,10 @@ func sanitiseString(s string) string {
 			}
 			i++
 			start = i
+
 			continue
 		}
+
 		c, size := utf8.DecodeRuneInString(s[i:])
 		if c == utf8.RuneError && size == 1 {
 			if start < i {
@@ -162,6 +167,7 @@ func sanitiseString(s string) string {
 			buf.WriteString(`\ufffd`)
 			i += size
 			start = i
+
 			continue
 		}
 		// U+2028 is LINE SEPARATOR.
@@ -179,10 +185,12 @@ func sanitiseString(s string) string {
 			buf.WriteByte(hex[c&0xF])
 			i += size
 			start = i
+
 			continue
 		}
 		i += size
 	}
+
 	if start < len(s) {
 		buf.WriteString(s[start:])
 	}
