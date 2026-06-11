@@ -9,10 +9,10 @@ import (
 )
 
 type Product struct {
-	ID       int         `json:"id"`
-	Price    float64     `json:"price"`
-	Deleted  bool        `json:"deleted"`
-	Nullable interface{} `json:"nullable"`
+	ID       int     `json:"id"`
+	Price    float64 `json:"price"`
+	Deleted  bool    `json:"deleted"`
+	Nullable any     `json:"nullable"`
 }
 
 type StringProduct struct {
